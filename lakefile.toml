@@ -1,0 +1,15 @@
+name = "libprocon-lean"
+version = "0.1.0"
+defaultTargets = ["libprocon-lean"]
+
+[[lean_lib]]
+name = "LibproconLean"
+
+[[lean_exe]]
+name = "libprocon-lean"
+root = "Main"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
