@@ -25,7 +25,7 @@ def edges (g : Graph) : List Edge :=
 -- 頂点数nと辺のリストesからグラフを構築
 def buildGraph (n : Nat) (es : List Edge) : Graph :=
   let init := Array.mkArray n []
-  let insertEdge := λ adj (u, v) => adj.modify u (List.insert v)
+  let insertEdge := λ adj (u, v) => adj.modify u (λ vs => v::vs)
   let adj := es.foldl insertEdge init
   { n, adj }
 
@@ -38,17 +38,17 @@ def transposeGraph (g : Graph) : Graph :=
 --
 --  Depth-first search
 --
-structure dfsTree where
+structure DFSTree where
   node ::
   label : Node
-  children : List dfsTree
+  children : List DFSTree
 
 -- 木に含まれるノードのリストを返す
-partial def dfsTree.flatten (t : dfsTree) : List Node :=
+partial def dfsTree.flatten (t : DFSTree) : List Node :=
   t.label :: t.children.flatMap flatten
 
 -- dfsの内部関数
-partial def dfsM (g : Graph) (ns : List Node) : StateM (HashSet Node) (List dfsTree) :=
+partial def dfsM (g : Graph) (ns : List Node) : StateM (HashSet Node) (List DFSTree) :=
   match ns with
   | [] => return []
   | v::vs => do
@@ -60,15 +60,15 @@ partial def dfsM (g : Graph) (ns : List Node) : StateM (HashSet Node) (List dfsT
       let nexts := g.adj[v]!
       let as ← dfsM g nexts
       let bs ← dfsM g vs
-      return dfsTree.node v as::bs
+      return DFSTree.node v as::bs
 
 -- nsに含まれる各ノードを起点に探索し、探索木のリストを返す
 -- ただし起点が既に探索済みの場合、その探索はスキップされる
-def dfs (g : Graph) (ns : List Node) : List dfsTree :=
+def dfs (g : Graph) (ns : List Node) : List DFSTree :=
   (g.dfsM ns).run' HashSet.empty
 
 -- すべてのNodeについてdfsする
-def dfsAll (g : Graph) : List dfsTree :=
+def dfsAll (g : Graph) : List DFSTree :=
   dfs g g.nodes
 
 
@@ -77,7 +77,7 @@ def dfsAll (g : Graph) : List dfsTree :=
 --
 
 -- postorderの内部関数
-partial def postorderRec (t : dfsTree) (state : List Node) : List Node :=
+partial def postorderRec (t : DFSTree) (state : List Node) : List Node :=
   t.children.foldr postorderRec (t.label::state)
 
 -- グラフの全頂点をdfsし、後退順で頂点が入ったリストを返す
@@ -85,10 +85,10 @@ def postorder (g : Graph) : List Node :=
   g.dfsAll.foldr postorderRec []
 
 -- sccの内部関数
-def sccTree (g : Graph) : List dfsTree :=
+def sccTree (g : Graph) : List DFSTree :=
   g.transposeGraph.dfs g.postorder.reverse
 
--- グラフをSCCに分解する
+-- Kosaraju AlgorithmでグラフをSCCに分解する
 def scc (g : Graph) : List (List Node) :=
   g.sccTree.map dfsTree.flatten
 
