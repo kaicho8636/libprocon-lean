@@ -2,9 +2,6 @@ import Std.Data.HashSet
 open Std
 
 
---
---  Graphs
---
 abbrev Node := Nat
 abbrev Edge := Node × Node
 structure Graph where
@@ -35,9 +32,7 @@ def transposeGraph (g : Graph) : Graph :=
   buildGraph g.n (g.edges.map reverseEdge)
 
 
---
---  Depth-first search
---
+-- DFSの結果を保持する木構造
 structure DFSTree where
   node ::
   label : Node
@@ -47,7 +42,7 @@ structure DFSTree where
 partial def dfsTree.flatten (t : DFSTree) : List Node :=
   t.label :: t.children.flatMap flatten
 
--- dfsの内部関数
+-- (内部関数)nsをスタックとしてグラフをDFS
 partial def dfsM (g : Graph) (ns : List Node) : StateM (HashSet Node) (List DFSTree) :=
   match ns with
   | [] => return []
@@ -76,7 +71,7 @@ def dfsAll (g : Graph) : List DFSTree :=
 --  Algorithms
 --
 
--- postorderの内部関数
+-- （内部関数）自分を後退順の最後に追加して再帰
 partial def postorderRec (t : DFSTree) (state : List Node) : List Node :=
   t.children.foldr postorderRec (t.label::state)
 
