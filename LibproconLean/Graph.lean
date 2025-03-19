@@ -1,7 +1,9 @@
 import Std.Data.HashSet
 open Std
 
+--
 -- Graphs
+--
 abbrev Node := Nat
 abbrev Edge := Node × Node
 
@@ -40,13 +42,21 @@ def transposeGraph (g : Graph) : Graph :=
   buildGraph g.n g.reverseEdges
 
 
+--
 -- Depth-first search
-
+--
 -- 深さ優先探索の結果として得る探索木のノードを表す構造体
 structure dfsTree where
   node ::
   label : Node  -- ノードの値
   children : List dfsTree  -- 子ノードのリスト
+
+namespace dfsTree
+
+partial def flatten (t : dfsTree) : List Node :=
+  t.label::t.children.flatMap flatten
+
+end dfsTree
 
 -- StateMモナドを用いて深さ優先探索を実行する内部関数
 partial def dfsM (g : Graph) (ns : List Node)
@@ -72,8 +82,9 @@ def dfsAll (g : Graph) : List dfsTree :=
   dfs g g.nodes
 
 
+--
 -- Algorithms
-
+--
 -- dfsTreeのノードを後順（postorder）に走査する再帰関数
 partial def postorderRec (t : dfsTree) (state : List Node) : List Node :=
   t.label::(t.children.foldr postorderRec state)
@@ -83,7 +94,10 @@ def postorder (g : Graph) : List Node :=
   (dfsAll g).foldr postorderRec []
 
 -- グラフの強連結成分（Strongly Connected Components）を求める
-def scc (g : Graph) : List dfsTree :=
+def sccTree (g : Graph) : List dfsTree :=
   g.dfs g.transposeGraph.postorder.reverse
+
+def scc (g : Graph) : List (List Node) :=
+  g.sccTree.map dfsTree.flatten
 
 end Graph
