@@ -1,66 +1,54 @@
 import Std.Data.HashSet
 open Std
 
+
 --
--- Graphs
+--  Graphs
 --
 abbrev Node := Nat
 abbrev Edge := Node × Node
-
--- Graph構造体: 頂点数と各頂点の隣接リストを保持する
 structure Graph where
-  n : Nat
-  adjecent : Array (List Node)
+  n : Nat -- 頂点数
+  adj : Array (List Node) -- 隣接リスト
 
 namespace Graph
 
--- 指定されたグラフの全頂点（0からn-1まで）のリストを返す
+-- グラフに含まれる頂点のリストを返す
 def nodes (g : Graph) : List Node :=
   List.range g.n
 
--- グラフ内の全辺のリストを返す
+-- グラフに含まれる辺のリストを返す
 def edges (g : Graph) : List Edge :=
-  g.nodes.flatMap (λ u =>
-    let vs := g.adjecent[u]!
-    vs.map (λ v => (u, v))
-  )
+  let getEdges := λ u => g.adj[u]!.map λ v => (u, v)
+  g.nodes.flatMap getEdges
 
--- 指定された頂点数と辺のリストからグラフを構築する
+-- 頂点数nと辺のリストesからグラフを構築
 def buildGraph (n : Nat) (es : List Edge) : Graph :=
   let init := Array.mkArray n []
-  let adjecent := es.foldl (λ adj (u, v) =>
-      adj.modify u (λ vs => vs.insert v)
-    ) init
-  { n, adjecent }
+  let insertEdge := λ adj (u, v) => adj.modify u (List.insert v)
+  let adj := es.foldl insertEdge init
+  { n, adj }
 
--- 各辺の向きを逆転させた辺のリストを返す
-def reverseEdges (g : Graph) : List Edge :=
-  g.edges.map (λ (u, v) => (v, u))
-
--- 各辺の向きを逆転させたグラフを返す
+-- 転置(辺の向きを反転)したグラフを返す
 def transposeGraph (g : Graph) : Graph :=
-  buildGraph g.n g.reverseEdges
+  let reverseEdge := λ (u, v) => (v, u)
+  buildGraph g.n (g.edges.map reverseEdge)
 
 
 --
--- Depth-first search
+--  Depth-first search
 --
--- 深さ優先探索の結果として得る探索木のノードを表す構造体
 structure dfsTree where
   node ::
-  label : Node  -- ノードの値
-  children : List dfsTree  -- 子ノードのリスト
+  label : Node
+  children : List dfsTree
 
-namespace dfsTree
+-- 木に含まれるノードのリストを返す
+partial def dfsTree.flatten (t : dfsTree) : List Node :=
+  t.label :: t.children.flatMap flatten
 
-partial def flatten (t : dfsTree) : List Node :=
-  t.label::t.children.flatMap flatten
-
-end dfsTree
-
--- StateMモナドを用いて深さ優先探索を実行する内部関数
-partial def dfsM (g : Graph) (ns : List Node)
-  : StateM (HashSet Node) (List dfsTree) :=
+-- dfsの内部関数
+partial def dfsM (g : Graph) (ns : List Node) : StateM (HashSet Node) (List dfsTree) :=
   match ns with
   | [] => return []
   | v::vs => do
@@ -68,35 +56,39 @@ partial def dfsM (g : Graph) (ns : List Node)
     if visited.contains v then
       dfsM g vs
     else
-      let nexts := g.adjecent[v]!
+      set (visited.insert v)
+      let nexts := g.adj[v]!
       let as ← dfsM g nexts
       let bs ← dfsM g vs
       return dfsTree.node v as::bs
 
--- 与えられた頂点リストに対して深さ優先探索を実行する
+-- nsに含まれる各ノードを起点に探索し、探索木のリストを返す
+-- ただし起点が既に探索済みの場合、その探索はスキップされる
 def dfs (g : Graph) (ns : List Node) : List dfsTree :=
-  (dfsM g ns).run' HashSet.empty
+  (g.dfsM ns).run' HashSet.empty
 
--- グラフ全体に対して深さ優先探索を実行する
+-- すべてのNodeについてdfsする
 def dfsAll (g : Graph) : List dfsTree :=
   dfs g g.nodes
 
 
 --
--- Algorithms
+--  Algorithms
 --
--- dfsTreeのノードを後順（postorder）に走査する再帰関数
+
+-- postorderの内部関数
 partial def postorderRec (t : dfsTree) (state : List Node) : List Node :=
-  t.label::(t.children.foldr postorderRec state)
+  t.children.foldr postorderRec (t.label::state)
 
--- グラフの探索木に対して後順走査を実行し、ノードのリストを返す
+-- グラフの全頂点をdfsし、後退順で頂点が入ったリストを返す
 def postorder (g : Graph) : List Node :=
-  (dfsAll g).foldr postorderRec []
+  g.dfsAll.foldr postorderRec []
 
--- グラフの強連結成分（Strongly Connected Components）を求める
+-- sccの内部関数
 def sccTree (g : Graph) : List dfsTree :=
-  g.dfs g.transposeGraph.postorder.reverse
+  g.transposeGraph.dfs g.postorder.reverse
 
+-- グラフをSCCに分解する
 def scc (g : Graph) : List (List Node) :=
   g.sccTree.map dfsTree.flatten
 
