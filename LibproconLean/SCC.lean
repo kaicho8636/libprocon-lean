@@ -1,4 +1,7 @@
-import Std.Data.HashSet
+--import Std.Data.HashSet
+import Mathlib.Data.Finset.Defs
+import Mathlib.Data.Finset.Empty
+import Mathlib.Data.Finset.Insert
 open Std
 
 
@@ -43,15 +46,15 @@ partial def dfsTree.flatten (t : DFSTree) : List Node :=
   t.label :: t.children.flatMap flatten
 
 -- (内部関数)nsをスタックとしてグラフをDFS
-partial def dfsM (g : Graph) (ns : List Node) : StateM (HashSet Node) (List DFSTree) :=
+partial def dfsM (g : Graph) (ns : List Node) : StateM (Finset Node) (List DFSTree) :=
   match ns with
   | [] => return []
   | v::vs => do
     let visited ← get
-    if visited.contains v then
+    if v ∈ visited then
       dfsM g vs
     else
-      set (visited.insert v)
+      set (insert v visited)
       let nexts := g.adj[v]!
       let as ← dfsM g nexts
       let bs ← dfsM g vs
@@ -60,7 +63,7 @@ partial def dfsM (g : Graph) (ns : List Node) : StateM (HashSet Node) (List DFST
 -- nsに含まれる各ノードを起点に探索し、探索木のリストを返す
 -- ただし起点が既に探索済みの場合、その探索はスキップされる
 def dfs (g : Graph) (ns : List Node) : List DFSTree :=
-  (g.dfsM ns).run' HashSet.empty
+  (g.dfsM ns).run' Finset.empty
 
 -- すべてのNodeについてdfsする
 def dfsAll (g : Graph) : List DFSTree :=
