@@ -1,8 +1,9 @@
-abbrev Modint (mod : Nat) [NeZero mod] := Fin mod
+open Nat
 
 namespace Modint
 
-def modpow {mod : Nat} [NeZero mod] (a : Modint mod) : Nat → Modint mod
+/--
+def modpow {mod : Nat} [NeZero mod] (a : Modint mod) : Nat → Modint mod :=
   | 0 => 1
   | n + 1 =>
     let b := n + 1
@@ -18,19 +19,28 @@ def modpow' {mod : Nat} [NeZero mod] (a : Modint mod) : Nat → Modint mod
   | n + 1 =>
     (modpow' a n) * a
 
+#eval modpow (3 : Modint 5) (2 : Nat)
+-/
+def modpow (c a b : Nat) (hc : c ≠ 0) := (a ^ b) % c
 
-theorem modpow_eq_mod_poweq [NeZero mod] (a : Modint mod) (b : Nat) : modpow a b = modpow' a b := by
+def modpow' (c a b : Nat) (hc : c ≠ 0) :=
+  match b with
+  | 0 => (if c = 1 then 0 else 1)
+  | b' + 1 => ((modpow c a b' hc) * a) % c
 
+def modpow'' (c a b : Nat) (hc : c ≠ 0) :=
+  match b with
+  | 0 => (if c = 1 then 0 else 1)
+  | b' + 1 =>
+    let d := b' + 1
+    let half := modpow'' c a (d / 2) hc
+    let remain := if d % 2 == 0 then 1 else a
+    half * half * remain
+
+theorem modpow_eq_modpow' : modpow = modpow' := by
   sorry
 
-
-
-instance {mod n : Nat} [NeZero mod] : OfNat (Modint mod) n  where
-  ofNat := ⟨n % mod, by
-    refine Nat.mod_lt n ?_
-    exact Nat.pos_of_neZero mod⟩
-
-instance {mod : Nat} [NeZero mod] : NatPow (Modint mod) where
-  pow a b := modpow a b
+theorem modpow_eq_modpow'' : modpow = modpow'' := by
+  sorry
 
 end Modint
