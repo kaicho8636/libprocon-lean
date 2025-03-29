@@ -13,6 +13,18 @@ def modpow {mod : Nat} [NeZero mod] (a : Modint mod) : Nat → Modint mod
     refine Nat.bitwise_rec_lemma ?_
     apply Ne.symm (Nat.zero_ne_add_one n)
 
+def modpow' {mod : Nat} [NeZero mod] (a : Modint mod) : Nat → Modint mod
+  | 0 => 1
+  | n + 1 =>
+    (modpow' a n) * a
+
+
+theorem modpow_eq_mod_poweq [NeZero mod] (a : Modint mod) (b : Nat) : modpow a b = modpow' a b := by
+
+  sorry
+
+
+
 instance {mod n : Nat} [NeZero mod] : OfNat (Modint mod) n  where
   ofNat := ⟨n % mod, by
     refine Nat.mod_lt n ?_
