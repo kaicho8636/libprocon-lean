@@ -4,25 +4,6 @@ open Nat
 
 namespace Modint
 
-/--
-def modpow {mod : Nat} [NeZero mod] (a : Modint mod) : Nat → Modint mod :=
-  | 0 => 1
-  | n + 1 =>
-    let b := n + 1
-    let half := modpow a (b / 2)
-    let remain := if b % 2 == 0 then 1 else a
-    half * half * remain
-  decreasing_by
-    refine Nat.bitwise_rec_lemma ?_
-    apply Ne.symm (Nat.zero_ne_add_one n)
-
-def modpow' {mod : Nat} [NeZero mod] (a : Modint mod) : Nat → Modint mod
-  | 0 => 1
-  | n + 1 =>
-    (modpow' a n) * a
-
-#eval modpow (3 : Modint 5) (2 : Nat)
--/
 def modpow (c a b : Nat) (hc : c ≠ 0) := (a ^ b) % c
 
 def modpow' (c a b : Nat) (hc : c ≠ 0) :=
