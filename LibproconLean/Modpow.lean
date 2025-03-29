@@ -1,3 +1,5 @@
+import Mathlib.Tactic.Linarith
+import Aesop
 open Nat
 
 namespace Modint
@@ -38,7 +40,21 @@ def modpow'' (c a b : Nat) (hc : c ≠ 0) :=
     half * half * remain
 
 theorem modpow_eq_modpow' : modpow = modpow' := by
-  sorry
+  ext c a b hc
+  unfold modpow modpow'
+  split
+  next b =>
+    simp_all only [ne_eq, pow_zero]
+    split
+    next h =>
+      subst h
+      simp_all only [one_ne_zero, not_false_eq_true, mod_self]
+    next h =>
+      exact one_mod_eq_one.mpr h
+  next b b' =>
+      unfold modpow
+      simp_all only [ne_eq, succ_eq_add_one, mod_mul_mod]
+      rfl
 
 theorem modpow_eq_modpow'' : modpow = modpow'' := by
   sorry
